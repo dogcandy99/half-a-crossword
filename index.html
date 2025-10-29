@@ -607,6 +607,20 @@ html, body {
 	table {page-break-inside: avoid !important;}
 	#column-two {border: 1px solid white;}
 }
+	<style>
+  /* This finds the original rule and adds the one property we need */
+  table.crossword td {
+    position: relative;
+  }
+
+  /* This is the new rule for styling our number */
+  .num {
+    position: absolute;
+    font-size: 0.5em; 
+    top: 1px;
+    left: 2px;
+    color: #333; 
+  }
 </style></head><body>
 <div id="wrapper" class="wrapper">
   <div id="container" class="container">
@@ -653,4 +667,5 @@ html, body {
 </div>
 </body>
 <script type="text/javascript" src="crossword.js"></script>
+
 </html>
