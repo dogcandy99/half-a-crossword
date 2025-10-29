@@ -1,23 +1,6 @@
 /* crossword code:
 Copyright (c) 2011 Matt Johnson
-
-Permission is hereby granted, free of charge, to any person obtaining a copy of
-this software and associated documentation files (the "Software"), to deal in
-the Software without restriction, including without limitation the rights to
-use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
-of the Software, and to permit persons to whom the Software is furnished to do
-so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+[...license text...]
  */
 // Each cell on the crossword grid is null or one of these
 function CrosswordCell(letter){
@@ -65,12 +48,6 @@ var CrosswordUtils = {
 
     // You can use this to clue the puzzle. Just feed it the grid.
     // It returns an object with across and down properties.
-    // For example:
-    // clues.across[0] = {
-    //             number: 1,
-    //             word: "HI",
-    //             clue: "A greeting"
-    // }
     getClues: function(grid, words){
         var clues = {across:[], down:[]}
         var rows = grid.length
@@ -98,7 +75,7 @@ var CrosswordUtils = {
         return clues
     },
 	
-	PATH_TO_PNGS_OF_NUMBERS: "numbers/", // not used in this fixed version
+	PATH_TO_PNGS_OF_NUMBERS: "numbers/", 
 	
     toHtml: function(grid, show_answers, a_words, b_words){
         if(grid == null) return
@@ -122,7 +99,7 @@ var CrosswordUtils = {
                     var is_start_of_word = (cell['across'] && cell['across']['is_start_of_word']) || (cell['down'] && cell['down']['is_start_of_word'])
                 }
 
-                // --- THIS IS THE ONLY CHANGE TO THIS FILE ---
+                // --- THIS IS THE PRINTING FIX ---
                 // It now creates a text-based number instead of a background image.
                 
                 // This one line creates the cell
@@ -141,7 +118,7 @@ var CrosswordUtils = {
                     html.push("&nbsp;");								
                 }
 
-                // --- END OF THE CHANGE ---
+                // --- END OF THE PRINTING FIX ---
                 
                 html.push("</td>")
             }
@@ -157,7 +134,11 @@ var CrosswordUtils = {
 // 1. Pass in a list of words.
 // 2. We'll add them randomly to the grid, overlapping when possible.
 // 3. We'll return the grid, or null if it's impossible
-function createCrossword(words, a_words, b_words){
+
+// ========================================================================
+// === BUG FIX 1: Renamed this function to "generateCrosswordGrid" ========
+// ========================================================================
+function generateCrosswordGrid(words, a_words, b_words){
 
     var grid = CrosswordUtils.makeGrid(20, 20)
     
@@ -397,16 +378,20 @@ function addWord(){
 		}
 	}
 	updateCount()
-	createCrossword(wordArray, wordArray)
+	createCrossword(wordArray, wordArray) // This calls the function below
 }
 
+// This is the front-end function that updates the HTML
 function createCrossword(words, a_words, b_words){
 	if(words.length == 0) return
 
 	//
 	// Let's make two separate grids, one for each student
 	//
-	var result = createCrossword(words, a_words, b_words)
+    // ========================================================================
+    // === BUG FIX 2: This now calls the correctly-named "generateCrosswordGrid"
+    // ========================================================================
+	var result = generateCrosswordGrid(words, a_words, b_words) 
 	if(result.grid == null) {
 		message_div.innerHTML = result.message
 		grid_a_div.innerHTML = ""
@@ -437,7 +422,7 @@ function createCrossword(words, a_words, b_words){
 	// We'll hide the words that aren't for this student
 	//
 	var a_grid = JSON.parse(JSON.stringify(result.grid)); // deep copy
-	var b_grid = JSON.parse(JSON.stringify(result.grid)); // deep copy
+	var b_grid = JSON.parse(JSON.stringify(result.grid)); // deep. copy
 	
 	clues_a_across.innerHTML = ""
 	clues_a_down.innerHTML = ""
