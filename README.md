@@ -1,4 +1,4 @@
-# half-a-crossword
+# 1/2-a-crossword
 Create Half a Crossword puzzles for ESL conversation classes.
 
 ### features
