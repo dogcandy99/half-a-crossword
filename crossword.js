@@ -473,15 +473,16 @@ var CrosswordUtils = {
 
 					// This adds the small, styled number *if* it's the start of a word
 					if(is_start_of_word) {
-						html.push('<span class="num">' + label + '</span>');
-						label++;			
-					}
-
-					// This adds the letter (or a blank space) *after* the number
-					if(show_answers) {
-						html.push(char);
+						var img_url = CrosswordUtils.PATH_TO_PNGS_OF_NUMBERS + label + ".png"
+						html.push('<td class="' + css_class + '" style=\'background-image:url("' + img_url + '"); background-repeat: no-repeat;\'>')
+						label++			
 					} else {
-						html.push("&nbsp;");								
+						html.push("<td class='" + css_class + "'>")					
+					}
+					if(show_answers) {
+						html.push(char)
+					} else {
+						html.push("&nbsp;")								
 					}
 				}
 				html.push("</tr>")
