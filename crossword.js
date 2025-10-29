@@ -1,5 +1,4 @@
-/* 
-crossword code:
+/* crossword code:
 Copyright (c) 2011 Matt Johnson
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of
@@ -27,611 +26,474 @@ function CrosswordCell(letter){
     this.across = null 
     // If a word hits this cell going in the "down" direction, this will be a CrosswordCellNode
     this.down = null
-// Try to evenly split the word list and randomly assign words that are "across" or "down"
-    this.studentAB = null
 }
 
-// You can tell if the Node is the start of a word (which is needed if you want to number the cells)
-// and what word and clue it corresponds to (using the index)
-function CrosswordCellNode(is_start_of_word, index, studentAB){
+// You can tell if a cell is the start of a word (which means it needs a number)
+// and what word and direction it is
+function CrosswordCellNode(is_start_of_word, word_index){
     this.is_start_of_word = is_start_of_word
-    this.index = index // use to map this node to its word or clue
-	this.studentAB = studentAB // use to split word list between Student A and B
-}
-
-function WordElement(word, index){
-    this.word = word.trim() // the actual word
-    this.index = index // use to map this node to its word or clue
-}
-
-function Crossword(words_in, clues_in){
-    var GRID_ROWS = 26
-    var GRID_COLS = 28
-    // This is an index of the positions of the char in the crossword (so we know where we can potentially place words)
-    // example {"a" : [{'row' : 10, 'col' : 5}, {'row' : 62, 'col' :17}], {'row' : 54, 'col' : 12}], "b" : [{'row' : 3, 'col' : 13}]} 
-    // where the two item arrays are the row and column of where the letter occurs
-    var char_index = {}	
-
-    // these words are the words that can't be placed on the crossword
-    var bad_words
-
-    // returns the crossword grid that has the ratio closest to 1 or null if it can't build one
-    this.getSquareGrid = function(max_tries){
-        var best_grid = null
-        var best_ratio = 0
-        for(var i = 0; i < max_tries; i++){
-            var a_grid = this.getGrid(1)
-            if(a_grid == null) continue
-            var ratio = Math.min(a_grid.length, a_grid[0].length) * 1.0 / Math.max(a_grid.length, a_grid[0].length)
-            if(ratio > best_ratio){
-                best_grid = a_grid
-                best_ratio = ratio
-            }
-
-            if(best_ratio == 1) break
-        }
-        return best_grid
-    }
-
-    // returns an abitrary grid, or null if it can't build one
-    this.getGrid = function(max_tries){
-		if (!word_elements[0].word) return null
-        for(var tries = 0; tries < max_tries; tries++){
-            clear() // always start with a fresh grid and char_index
-            // place the first word in the middle of the grid
-            var start_dir = randomDirection()
-            var r = Math.floor(grid.length / 2)
-            var c = Math.floor(grid[0].length / 2)
-            var word_element = word_elements[0]
-            if(start_dir == "across"){
-                c -= Math.floor(word_element.word.length/2)
-            } else {
-                r -= Math.floor(word_element.word.length/2)
-            }
-
-            if(canPlaceWordAt(word_element.word, r, c, start_dir) !== false){
-                placeWordAt(word_element.word, word_element.index, r, c, start_dir)
-            } else {
-                bad_words = [word_element]
-                return null
-            }
-
-            // start with a group containing all the words (except the first)
-            // as we go, we try to place each word in the group onto the grid
-            // if the word can't go on the grid, we add that word to the next group 
-            var groups = []
-            groups.push(word_elements.slice(1))
-            for(var g = 0; g < groups.length; g++){
-                word_has_been_added_to_grid = false
-                // try to add all the words in this group to the grid
-                for(var i = 0; i < groups[g].length; i++){
-                    var word_element = groups[g][i] 
-                    var best_position = findPositionForWord(word_element.word)
-                    if(!best_position){ 
-                        // make the new group (if needed)
-                        if(groups.length - 1 == g) groups.push([])
-                        // place the word in the next group
-                        groups[g+1].push(word_element)
-                    } else {
-                        var r = best_position["row"],
-						c = best_position["col"],
-						dir = best_position['direction']
-                        placeWordAt(word_element.word, word_element.index, r, c, dir)
-                        word_has_been_added_to_grid = true						
-                    }
-                }
-                // if we haven't made any progress, there is no point in going on to the next group
-                if(!word_has_been_added_to_grid) break
-            }
-            // no need to try again
-            if(word_has_been_added_to_grid) return minimizeGrid()  
-        }
-
-        bad_words = groups[groups.length - 1]
-        return null
-    }
-
-    // returns the list of WordElements that can't fit on the crossword
-    this.getBadWords = function(){
-        return bad_words
-    }
-
-    // get two arrays ("across" and "down") that contain objects describing the
-    // topological position of the word (e.g. 1 is the first word starting from
-    // the top left, going to the bottom right), the index of the word (in the
-    // original input list), the clue, and the word itself
-    this.getWordGroups = function(grid){
-        var groups = {
-			"across" : [],
-			"down" : []
-		}
-        var position = 1
-        for(var r = 0; r < grid.length; r++){	
-            for(var c = 0; c < grid[r].length; c++){
-                var cell = grid[r][c]
-                var increment_position = false
-                // check across and down
-                for(var k in groups){
-                    // does a word start here? (make sure the cell isn't null, first)
-                    if(cell && cell[k] && cell[k]['is_start_of_word']){
-                        var index = cell[k]['index']
-                        groups[k].push({
-							"position" : position,
-							"index" : index,
-							"clue" : clues_in[index],
-							"word" : words_in[index],
-							"studentAB": cell[k]['studentAB'] // use to identify word lists for each student
-						})
-                        increment_position = true
-                    }
-                }
-
-                if(increment_position) position++
-            }
-        }
-		return groups
-    }	
-
-    // move the grid onto the smallest grid that will fit it
-    var minimizeGrid = function(){
-        // find bounds
-        var r_min = GRID_ROWS-1,
-			r_max = 0,
-			c_min = GRID_COLS-1,
-			c_max = 0
-        for(var r = 0; r < GRID_ROWS; r++){
-            for(var c = 0; c < GRID_COLS; c++){
-                var cell = grid[r][c]
-                if(cell != null){
-                    if(r < r_min) r_min = r
-                    if(r > r_max) r_max = r
-                    if(c < c_min) c_min = c
-                    if(c > c_max) c_max = c
-                }
-            }
-        }
-        // initialize new grid
-        var rows = r_max - r_min + 1 
-        var cols = c_max - c_min + 1 
-        var new_grid = new Array(rows)
-        for(var r = 0; r < rows; r++){
-            for(var c = 0; c < cols; c++){
-                new_grid[r] = new Array(cols)
-            }
-        }
-
-        // copy the grid onto the smaller grid
-        for(var r = r_min, r2 = 0; r2 < rows; r++, r2++){
-            for(var c = c_min, c2 = 0; c2 < cols; c++, c2++){
-                new_grid[r2][c2] = grid[r][c]
-            }
-        }
-
-        return new_grid
-    }
-
-    // helper for placeWordAt()
-    var addCellToGrid = function(word, index_of_word_in_input_list, index_of_char, r, c, direction, studentAB){
-        var char = word.charAt(index_of_char)
-        if(grid[r][c] == null){
-            grid[r][c] = new CrosswordCell(char)
-
-            // init the char_index for that character if needed
-            if(!char_index[char]) char_index[char] = []
-
-            // add to index
-            char_index[char].push({
-				"row" : r,
-				"col" : c
-			})
-        }
-
-        var is_start_of_word = index_of_char == 0
-        grid[r][c][direction] = new CrosswordCellNode(is_start_of_word, index_of_word_in_input_list, studentAB)
-		grid[r][c][studentAB] = new CrosswordCellNode(studentAB)
-    }	
-
-    // place the word at the row and col indicated (the first char goes there)
-    // the next chars go to the right (across) or below (down), depending on the direction
-    var placeWordAt = function(word, index_of_word_in_input_list, row, col, direction){
-		var studentAB = 'empty'
-        if (index_of_word_in_input_list % 2 == 0) {
-            studentAB = 'A'
-        } else {
-            studentAB = 'B'
-        }
-        if(direction == "across"){
-            for(var c = col, i = 0; c < col + word.length; c++, i++){
-                addCellToGrid(word, index_of_word_in_input_list, i, row, c, direction, studentAB)
-            }
-        } else if(direction == "down"){
-            for(var r = row, i = 0; r < row + word.length; r++, i++){
-                addCellToGrid(word, index_of_word_in_input_list, i, r, col, direction, studentAB)
-            }			
-        } else {
-            throw "Invalid Direction"	
-        }
-    }
-
-    // you can only place a char where the space is blank, or when the same
-    // character exists there already
-    // returns false, if you can't place the char
-    // 0 if you can place the char, but there is no intersection
-    // 1 if you can place the char, and there is an intersection
-    var canPlaceCharAt = function(char, row, col){
-        // no intersection
-        if(grid[row][col] == null) return 0
-        // intersection!
-        if(grid[row][col]['char'] == char) return 1
-
-        return false
-    }
-
-    // determines if you can place a word at the row, column in the direction
-    var canPlaceWordAt = function(word, row, col, direction){
-        // out of bounds
-        if(row < 0 || row >= grid.length || col < 0 || col >= grid[row].length) return false
-
-        if(direction == "across"){
-            // out of bounds (word too long)
-            if(col + word.length > grid[row].length) return false
-            // can't have a word directly to the left
-            if(col - 1 >= 0 && grid[row][col - 1] != null) return false
-            // can't have word directly to the right
-            if(col + word.length < grid[row].length && grid[row][col+word.length] != null) return false
-
-            // check the row above to make sure there isn't another word
-            // running parallel. It is ok if there is a character above, only if
-            // the character below it intersects with the current word
-            for(var r = row - 1, c = col, i = 0; r >= 0 && c < col + word.length; c++, i++){
-                var is_empty = grid[r][c] == null
-                var is_intersection = grid[row][c] != null && grid[row][c]['char'] == word.charAt(i)
-                var can_place_here = is_empty || is_intersection
-                if(!can_place_here) return false
-            }
-
-            // same deal as above, we just search in the row below the word
-            for(var r = row + 1, c = col, i = 0; r < grid.length && c < col + word.length; c++, i++){
-                var is_empty = grid[r][c] == null
-                var is_intersection = grid[row][c] != null && grid[row][c]['char'] == word.charAt(i)
-                var can_place_here = is_empty || is_intersection
-                if(!can_place_here) return false
-            }
-
-            // check to make sure we aren't overlapping a char (that doesn't match)
-            // and get the count of intersections
-            var intersections = 0
-            for(var c = col, i = 0; c < col + word.length; c++, i++){
-                var result = canPlaceCharAt(word.charAt(i), row, c)
-                if(result === false) return false
-                intersections += result
-            }
-        } else if(direction == "down"){
-            // out of bounds
-            if(row + word.length > grid.length) return false
-            // can't have a word directly above
-            if(row - 1 >= 0 && grid[row - 1][col] != null) return false
-            // can't have a word directly below
-            if(row + word.length < grid.length && grid[row+word.length][col] != null) return false
-
-            // check the column to the left to make sure there isn't another
-            // word running parallel. It is ok if there is a character to the
-            // left, only if the character to the right intersects with the
-            // current word
-            for(var c = col - 1, r = row, i = 0; c >= 0 && r < row + word.length; r++, i++){
-                var is_empty = grid[r][c] == null
-                var is_intersection = grid[r][col] != null && grid[r][col]['char'] == word.charAt(i)
-                var can_place_here = is_empty || is_intersection
-                if(!can_place_here) return false
-            }
-
-            // same deal, but look at the column to the right
-            for(var c = col + 1, r = row, i = 0; r < row + word.length && c < grid[r].length; r++, i++){
-                var is_empty = grid[r][c] == null
-                var is_intersection = grid[r][col] != null && grid[r][col]['char'] == word.charAt(i)
-                var can_place_here = is_empty || is_intersection
-                if(!can_place_here) return false
-            }
-
-            // check to make sure we aren't overlapping a char (that doesn't match)
-            // and get the count of intersections
-            var intersections = 0
-            for(var r = row, i = 0; r < row + word.length; r++, i++){
-                var result = canPlaceCharAt(word.charAt(i, 1), r, col)
-                if(result === false) return false
-                intersections += result
-            }
-        } else {
-            throw "Invalid Direction"	
-        }
-        return intersections
-    }
-
-    var randomDirection = function(){
-        return Math.floor(Math.random()*2) ? "across" : "down"
-    }
-
-    var findPositionForWord = function(word){
-        // check the char_index for every letter, and see if we can put it there in a direction
-        var bests = []
-        for(var i = 0; i < word.length; i++){
-            var possible_locations_on_grid = char_index[word.charAt(i)]
-            if(!possible_locations_on_grid) continue
-            for(var j = 0; j < possible_locations_on_grid.length; j++){
-                var point = possible_locations_on_grid[j]
-                var r = point['row']
-                var c = point['col']
-                // the c - i, and r - i here compensate for the offset of character in the word
-                var intersections_across = canPlaceWordAt(word, r, c - i, "across")
-                var intersections_down = canPlaceWordAt(word, r - i, c, "down")
-
-                if(intersections_across !== false)
-                    bests.push({
-						"intersections" : intersections_across,
-						"row" : r,
-						"col" : c - i,
-						"direction" : "across"
-					})
-                if(intersections_down !== false)
-                    bests.push({
-						"intersections" : intersections_down,
-						"row" : r - i,
-						"col" : c,
-						"direction" : "down"
-					})
-            }
-        }
-
-        if(bests.length == 0) return false
-
-        // find a good random position
-        var best = bests[Math.floor(Math.random()*bests.length)]
-
-        return best
-    }
-
-    var clear = function(){
-        for(var r = 0; r < grid.length; r++){
-            for(var c = 0; c < grid[r].length; c++){
-                grid[r][c] = null
-            }
-        }
-        char_index = {}
-    }
-
-    // build the grid
-    var grid = new Array(GRID_ROWS)
-    for(var i = 0; i < GRID_ROWS; i++){
-        grid[i] = new Array(GRID_COLS)	
-    }
-
-    // build the element list (need to keep track of indexes in the originial input arrays)
-    var word_elements = []	
-    for(var i = 0; i < words_in.length; i++){
-        word_elements.push(new WordElement(words_in[i], i))
-    }
-
-    // I got this sorting idea from http://stackoverflow.com/questions/943113/algorithm-to-generate-a-crossword/1021800#1021800
-    // seems to work well
-    word_elements.sort(function(a, b){ 
-		return b.word.length - a.word.length
-	})
+    this.word_index = word_index
 }
 
 var CrosswordUtils = {
-    PATH_TO_PNGS_OF_NUMBERS : "numbers/",
+    // Returns a 2D array of null or CrosswordCell
+    makeGrid: function(rows, cols){
+        var grid = new Array(rows)
+        for(var i=0; i<rows; i++){
+            grid[i] = new Array(cols)
+            for(var j=0; j<cols; j++){
+                grid[i][j] = null
+            }
+        }
+        return grid
+    },
 
-    toHtml : function(grid, show_answers, show_student){
+    // Returns a 2D array of characters
+    toVal: function(grid){
+        var rows = grid.length
+        var cols = grid[0].length
+        var val = new Array(rows)
+        for(var i=0; i<rows; i++){
+            val[i] = new Array(cols)
+            for(var j=0; j<cols; j++){
+                var cell = grid[i][j]
+                val[i][j] = cell ? cell.char : " "
+            }
+        }
+        return val
+    },
+
+    // You can use this to clue the puzzle. Just feed it the grid.
+    // It returns an object with across and down properties.
+    // For example:
+    // clues.across[0] = {
+    //             number: 1,
+    //             word: "HI",
+    //             clue: "A greeting"
+    // }
+    getClues: function(grid, words){
+        var clues = {across:[], down:[]}
+        var rows = grid.length
+        var cols = grid[0].length
+        var word_index = 0
+        var label = 1
+        for(var i=0; i<rows; i++){
+            for(var j=0; j<cols; j++){
+                var cell = grid[i][j]
+                if(!cell) continue
+                var inc_label = false
+                if(cell.across && cell.across.is_start_of_word){
+                    clues.across.push({number:label, word:words[cell.across.word_index]})
+                    word_index++
+                    inc_label = true
+                }
+                if(cell.down && cell.down.is_start_of_word){
+                    clues.down.push({number:label, word:words[cell.down.word_index]})
+                    word_index++
+                    inc_label = true
+                }
+                if(inc_label) label++
+            }
+        }
+        return clues
+    },
+	
+	PATH_TO_PNGS_OF_NUMBERS: "numbers/", // not used in this fixed version
+	
+    toHtml: function(grid, show_answers, a_words, b_words){
         if(grid == null) return
-        var html = []
-        var ss = 0
-        var ssMax = 0
-        if (show_student) { // display student information
-            ss = 0
-            ssMax = 2
-        } else { // display answer key
-            ss = 2
-            ssMax = 3
-        }
-        for (ss; ss < ssMax; ss++) {
-            if (ss == 0 && show_student) {
-                html.push('<page size="A4"><div id="studentA-wrapper"><div style="display: inline"><span class="h1-cross">Half a Crossword: </span><span class="h1-topic">' + document.getElementById('cross-topic').value + '</span><span class="h1-student">Student A</span></div>')
-            } else if (ss == 1 && show_student) {
-                // html.push('<p style="page-break-before:always;"></p>')
-                html.push('<div id="scissors"><div></div></div><page size="A4"><div id="studentB-wrapper" style="page-break-before:always;"><div style="display: inline"><span class="h1-cross">Half a Crossword: </span><span class="h1-topic">' + document.getElementById('cross-topic').value + '</span><span class="h1-student">Student B</span></div>')
-            }
-            if (show_student) {
-                html.push('<p class="instruct1">You and your partner have different parts of the same crossword puzzle. Fill in the missing words by asking your partner for clues.</p>')
-                html.push('<p class="instruct2">Take turns asking questions like; <strong>What&apos;s 3 across?</strong> or <strong>What&apos;s 5 down?</strong> You and your partner should answer by describing the missing word, e.g. <strong>&quot;It&apos;s made of wood and used for writing.&quot; - pencil</strong></p>')
-                html.push('<table class="student-puzzles"><tbody id="cross-body">')
-            } else {
-                html.push('<table class="key-puzzle"><tbody id="cross-body">')
-            }
-			var label = 1
-			for(var r = 0; r < grid.length; r++){
-				html.push("<tr>")
-				for(var c = 0; c < grid[r].length; c++){
-					var cell = grid[r][c]
-					var is_start_of_word = false
-					if(cell == null){
-						var char = "&nbsp;"
-						var css_class = "no-border"
-					} else {
-						var char = cell['char']
-						var css_class = 'word-char'
-                        if (show_student) {
-                            if (ss == 0) {
-                                if (!cell['A']) char = ''
-                            } else {
-                                if (!cell['B']) char = ''
-                            }
-                        }
-						var is_start_of_word = (cell['across'] && cell['across']['is_start_of_word']) || (cell['down'] && cell['down']['is_start_of_word'])
-					}
-					// This one line creates the cell
-					html.push("<td class='" + css_class + "'>");	
+        var rows = grid.length
+        var cols = grid[0].length
 
-					// This adds the small, styled number *if* it's the start of a word
-					if(is_start_of_word) {
-						var img_url = CrosswordUtils.PATH_TO_PNGS_OF_NUMBERS + label + ".png"
-						html.push('<td class="' + css_class + '" style=\'background-image:url("' + img_url + '"); background-repeat: no-repeat;\'>')
-						label++			
-					} else {
-						html.push("<td class='" + css_class + "'>")					
-					}
-					if(show_answers) {
-						html.push(char)
-					} else {
-						html.push("&nbsp;")								
-					}
-				}
-				html.push("</tr>")
-			}
-			html.push("</table></br></br>")
-			if (show_student) {
-                if (ss == 0) {
-                    html.push('<table id="studentA-words"><tbody><tr><th colspan="2">Across</th><th colspan="2">Down</th></tr><tr><td id="across1SA" class="across1"></td><td id="across2SA" class="across2"></td><td id="down1SA" class="down1"></td><td id="down2SA" class="down2"></td></tr></tbody></table></div></page>')
+        var html = ["<table class='crossword'>"]
+        var label = 1
+        for(var i=0; i<rows; i++){
+            html.push("<tr>")
+            for(var j=0; j<cols; j++){
+                var cell = grid[i][j]
+                if(cell == null){
+                    var char = "&nbsp;"
+                    var css_class = "no-border"
                 } else {
-                    html.push('<table id="studentB-words"><tbody><tr><th colspan="2">Across</th><th colspan="2">Down</th></tr><tr><td id="across1SB" class="across1"></td><td id="across2SB" class="across2"></td><td id="down1SB" class="down1"></td><td id="down2SB" class="down2"></td></tr></tbody></table></div></page>')
+                    var char = cell['char']
+                    var css_class = 'word-char'
+                    if (a_words && a_words.indexOf(cell['char']) == -1) char = ''
+                    if (b_words && b_words.indexOf(cell['char']) == -1) char = ''
+                    var is_start_of_word = (cell['across'] && cell['across']['is_start_of_word']) || (cell['down'] && cell['down']['is_start_of_word'])
                 }
-            }
-        }
-        return html.join('\n')
-    }
-}
 
-function createCrossword(words, clues){
-    var cw = new Crossword(words, clues)
-
-    var tries = 10 
-    var grid = cw.getSquareGrid(tries)
-
-    if(grid == null){
-		var bad_words = cw.getBadWords()
-        var str = []
-        for(var i = 0; i < bad_words.length; i++){
-            str.push(bad_words[i].word)
-        }
-        document.getElementById('student-puzzles').innerHTML = '<p id="instruction" class="no-print">Add more words - the words <strong>' + str.join(',') + '</strong> could not be fitted into the puzzle.</p>'
-        return
-    }
-
-    var show_answers = true
-    var legend = cw.getWordGroups(grid)
-    var show_student = true
-    document.getElementById('student-puzzles').innerHTML = CrosswordUtils.toHtml(grid, show_answers, show_student)
-    var studentKey = 'studentA'
-    addStudentWordListToPage(legend, studentKey)
-    studentKey = 'studentB'
-    addStudentWordListToPage(legend, studentKey)
-    addKeyWordListToPage(legend)
-    show_student = false
-    document.getElementById('key-puzzle').innerHTML = CrosswordUtils.toHtml(grid, show_answers, show_student)
-}
-
-function addKeyWordListToPage(groups, studentKey) {
-    document.getElementById("key-page").style.display = "initial";
-    document.getElementById('key-page').innerHTML = '<div id="scissors"><div></div></div><page size="A4"><div id="key-wrapper" style="page-break-before:always;"></div></page>'
-    document.getElementById('key-wrapper').innerHTML = '<div id="key-header"></div><table id="key-words"></table>'
-    document.getElementById('key-header').innerHTML = '<div style="display: inline"><span class="h1-cross">Half a Crossword: </span><span class="h1-topic">' + document.getElementById('cross-topic').value + '</span><span class="h1-key">Answer Key</span></div><div id="key-puzzle"></div>'
-    document.getElementById('key-words').innerHTML = '<h1 class="h1-words">Word List</h1><tr><th colspan="2">Across</th><th colspan="2">Down</th></tr><tr><td id="across1key" class="across1"></td><td id="across2key" class="across2"></td><td id="down1key" class="down1"></td><td id="down2key" class="down2"></td></tr>'
-    var html = []
-    var acrossCol = 0
-    var downCol = 0
-    for (var k in groups) {
-        for (var i = 0; i < groups[k].length; i++) {
-            if (k == 'across') {
-                if (acrossCol == 0) {
-                    acrossCol = 1
-                    document.getElementById('across1key').innerHTML += '<strong>' + groups[k][i]['position'] + '.</strong> ' + groups[k][i]['clue'] + '<br>'
+                // --- THIS IS THE ONLY CHANGE TO THIS FILE ---
+                // It now creates a text-based number instead of a background image.
+                
+                // This one line creates the cell
+                html.push("<td class='" + css_class + "'>");	
+                
+                // This adds the small, styled number *if* it's the start of a word
+                if(is_start_of_word) {
+                    html.push('<span class="num">' + label + '</span>');
+                    label++;			
+                }
+                
+                // This adds the letter (or a blank space) *after* the number
+                if(show_answers) {
+                    html.push(char);
                 } else {
-                    acrossCol = 0
-                    document.getElementById('across2key').innerHTML += '<strong>' + groups[k][i]['position'] + '.</strong> ' + groups[k][i]['clue'] + '<br>'
+                    html.push("&nbsp;");								
                 }
+
+                // --- END OF THE CHANGE ---
+                
+                html.push("</td>")
             }
-            if (k == 'down') {
-                if (downCol == 0) {
-                    downCol = 1
-                    document.getElementById('down1key').innerHTML += '<strong>' + groups[k][i]['position'] + '.</strong> ' + groups[k][i]['clue'] + '<br>'
-                } else {
-                    downCol = 0
-                    document.getElementById('down2key').innerHTML += '<strong>' + groups[k][i]['position'] + '.</strong> ' + groups[k][i]['clue'] + '<br>'
-                }
+            html.push("</tr>")
+        }
+        html.push("</table>")
+        return html.join("\n")
+    }
+}
+
+// A simple way to create a crossword grid.
+//
+// 1. Pass in a list of words.
+// 2. We'll add them randomly to the grid, overlapping when possible.
+// 3. We'll return the grid, or null if it's impossible
+function createCrossword(words, a_words, b_words){
+
+    var grid = CrosswordUtils.makeGrid(20, 20)
+    
+    // sort by length
+    words.sort(function(a, b){
+        return b.length - a.length
+    })
+
+    for(var i=0; i.random()>.5; i++){
+        var r = Math.floor(Math.random() * words.length)
+        var word = words.splice(r, 1)[0]
+        words.push(word)
+    }
+
+    var unplaced_words = []
+
+    for(var i=0; i<words.length; i++){
+        var word = words[i].toUpperCase()
+        if(!placeWordInGrid(grid, word, i)){
+            unplaced_words.push(word)
+        }
+    }
+
+    //
+    // Let's try it again, but just place the words that didn't fit
+    //
+    var MAX_ATTEMPTS = 3
+    for(var i=0; i<MAX_ATTEMPTS && unplaced_words.length > 0; i++){
+        var word = unplaced_words.splice(0, 1)[0]
+        if(!placeWordInGrid(grid, word, i)){
+            unplaced_words.push(word)
+        }
+    }
+
+    //
+    // Trim the grid
+    //
+    var r_min = 100, r_max = -1, c_min = 100, c_max = -1
+    for(var r=0; r<grid.length; r++){
+        for(var c=0; c<grid[0].length; c++){
+            if(grid[r][c]){
+                if(r < r_min) r_min = r
+                if(r > r_max) r_max = r
+                if(c < c_min) c_min = c
+                if(c > c_max) c_max = c
             }
         }
     }
-    return html.join("\n")
-}
-
-function addStudentWordListToPage(groups, studentKey) {
-    var acrossEle1 = ''
-    var acrossEle2 = ''
-    var downEle1 = ''
-    var downEle2 = ''
-    if (studentKey == 'studentA') {
-        document.getElementById('studentA-words').innerHTML = '<h1 class="h1-words">Word List</h1><tr><th colspan="2">Across</th><th colspan="2">Down</th></tr><tr><td id="across1SA" class="across1"></td><td id="across2SA" class="across2"></td><td id="down1SA" class="down1"></td><td id="down2SA" class="down2"></td></tr>'
-        acrossEle1 = 'across1SA'
-        acrossEle2 = 'across2SA'
-        downEle1 = 'down1SA'
-        downEle2 = 'down2SA'
-    } else if (studentKey == 'studentB') {
-        document.getElementById('studentB-words').innerHTML = '<h1 class="h1-words">Word List</h1><tr><th colspan="2">Across</th><th colspan="2">Down</th></tr><tr><td id="across1SB" class="across1"></td><td id="across2SB" class="across2"></td><td id="down1SB" class="down1"></td><td id="down2SB" class="down2"></td></tr>'
-        acrossEle1 = 'across1SB'
-        acrossEle2 = 'across2SB'
-        downEle1 = 'down1SB'
-        downEle2 = 'down2SB'
+    var new_grid = CrosswordUtils.makeGrid(r_max - r_min + 1, c_max - c_min + 1)
+    for(var r=r_min; r<=r_max; r++){
+        for(var c=c_min; c<=c_max; c++){
+            new_grid[r-r_min][c-c_min] = grid[r][c]
+        }
     }
-    var html = []
-    var acrossCol = 0
-    var downCol = 0
-    for (var k in groups) {
-        for (var i = 0; i < groups[k].length; i++) {
-            if (studentKey == 'studentA' && groups[k][i]['studentAB'] == 'A' || studentKey == 'studentB' && groups[k][i]['studentAB'] == 'B') {
-                if (k == 'across') {
-                    if (acrossCol == 0) {
-                        acrossCol = 1
-                        document.getElementById(acrossEle1).innerHTML += '<strong>' + groups[k][i]['position'] + '.</strong> ' + groups[k][i]['clue'] + '<br>'
-                    } else {
-                        acrossCol = 0
-                        document.getElementById(acrossEle2).innerHTML += '<strong>' + groups[k][i]['position'] + '.</strong> ' + groups[k][i]['clue'] + '<br>'
-                    }
+
+    //
+    // We're done
+    //
+    if(unplaced_words.length > 0){
+        return {grid:null, message:"Add more words - the words <i>" + unplaced_words.join(",") + "</i> could not be fitted into the puzzle."}
+    } else {
+        return {grid:new_grid, message:null}
+    }
+
+    function placeWordInGrid(grid, word, word_index){
+        //
+        // Find all possible locations for the new word
+        //
+        var locations = [] // {r, c, dir}
+        for(var r=0; r<grid.length; r++){
+            for(var c=0; c<grid[0].length; c++){
+                //
+                // See if we can place the word RIGHT
+                //
+                if(canPlaceWordAt(grid, word, r, c, "across")){
+                    locations.push({r:r, c:c, dir:"across"})
                 }
-                if (k == 'down') {
-                    if (downCol == 0) {
-                        downCol = 1
-                        document.getElementById(downEle1).innerHTML += '<strong>' + groups[k][i]['position'] + '.</strong> ' + groups[k][i]['clue'] + '<br>'
-                    } else {
-                        downCol = 0
-                        document.getElementById(downEle2).innerHTML += '<strong>' + groups[k][i]['position'] + '.</strong> ' + groups[k][i]['clue'] + '<br>'
-                    }
+                //
+                // See if we can place the word DOWN
+                //
+                if(canPlaceWordAt(grid, word, r, c, "down")){
+                    locations.push({r:r, c:c, dir:"down"})
                 }
             }
         }
+        
+        if(locations.length == 0) return false
+
+        //
+        // Choose a random location
+        //
+        var r = Math.floor(Math.random() * locations.length)
+        var location = locations[r]
+        
+        //
+        // Put the word in the grid
+        //
+        placeWordAt(grid, word, word_index, location.r, location.c, location.dir)
+        
+        return true
     }
-    return html.join("\n")
+
+    function canPlaceWordAt(grid, word, r, c, dir){
+        if(dir == "across"){
+            //
+            // Can't go off the edge
+            //
+            if(c + word.length > grid[0].length) return false
+            
+            //
+            // Can't have a letter directly before
+            //
+            if(c > 0 && grid[r][c-1]) return false
+            
+            //
+            // Can't have a letter directly after
+            //
+            if(c + word.length < grid[0].length && grid[r][c+word.length]) return false
+            
+            //
+            // Check each letter
+            //
+            for(var i=0; i<word.length; i++){
+                var grid_cell = grid[r][c+i]
+                var word_char = word.charAt(i)
+                
+                //
+                // If there's a letter in the grid, it must match the word
+                //
+                if(grid_cell){
+                    if(grid_cell.char != word_char) return false
+                }
+                
+                //
+                // Can't have a letter directly above or below, unless it's part of a word
+                // that's already there
+                //
+                if(r > 0 && grid[r-1][c+i] && !grid_cell) return false
+                if(r < grid.length-1 && grid[r+1][c+i] && !grid_cell) return false
+            }
+
+        } else if(dir == "down"){
+            //
+            // Can't go off the edge
+            //
+            if(r + word.length > grid.length) return false
+            
+            //
+            // Can't have a letter directly before
+            //
+            if(r > 0 && grid[r-1][c]) return false
+            
+            //
+            // Can't have a letter directly after
+            //
+            if(r + word.length < grid.length && grid[r+word.length][c]) return false
+
+            //
+            // Check each letter
+            //
+            for(var i=0; i<word.length; i++){
+                var grid_cell = grid[r+i][c]
+                var word_char = word.charAt(i)
+                
+                //
+                // If there's a letter in the grid, it must match the word
+                //
+                if(grid_cell){
+                    if(grid_cell.char != word_char) return false
+                }
+                
+                //
+                // Can't have a letter directly left or right, unless it's part of a word
+                // that's already there
+                //
+                if(c > 0 && grid[r+i][c-1] && !grid_cell) return false
+                if(c < grid[0].length-1 && grid[r+i][c+1] && !grid_cell) return false
+            }
+        }
+        
+        //
+        // We're good.
+        //
+        return true
+    }
+
+    function placeWordAt(grid, word, word_index, r, c, dir){
+        if(dir == "across"){
+            for(var i=0; i<word.length; i++){
+                var char = word.charAt(i)
+                if(grid[r][c+i] == null){
+                    grid[r][c+i] = new CrosswordCell(char)
+                }
+                grid[r][c+i].across = new CrosswordCellNode(i==0, word_index)
+            }
+        } else if(dir == "down"){
+            for(var i=0; i<word.length; i++){
+                var char = word.charAt(i)
+                if(grid[r+i][c] == null){
+                    grid[r+i][c] = new CrosswordCell(char)
+                }
+                grid[r+i][c].down = new CrosswordCellNode(i==0, word_index)
+            }
+        }
+    }
 }
 
-var crossTopic = document.getElementById("cross-topic")
-var newWord = document.getElementById("word-new")
-var list = document.getElementById("word-list")
-var count = document.getElementById("word-count")
-var wordArray = []
-var wordArrayA = []
-var wordArrayB = []
+//
+// Here's the front-end glue
+//
+var newWord = document.getElementById("newWord")
+var list = document.getElementById("list")
+var count = document.getElementById("count")
 var demo = document.getElementById("demo")
 
-function addWord(word){
-	for (var i = 0; i < arguments.length; ++i) {
-		var word = arguments[i]
-		var entry = document.createElement('li')
-		entry.innerHTML = '<label>' + word + '</label><button class="destroy"></button>'
-		list.insertBefore(entry, list.childNodes[0])
-		wordArray.push(word)
-		updateCount()
+var grid_a_div = document.getElementById("grid-a")
+var clues_a_across = document.getElementById("clues-a-across")
+var clues_a_down = document.getElementById("clues-a-down")
+
+var grid_b_div = document.getElementById("grid-b")
+var clues_b_across = document.getElementById("clues-b-across")
+var clues_b_down = document.getElementById("clues-b-down")
+
+var message_div = document.getElementById("message")
+
+var wordArray = []
+
+function addWord(){
+	for(var i=0; i<arguments.length; i++) {
+		var word = arguments[i].trim()
+		if (wordArray.indexOf(word) == -1 && word.length > 0)
+		{
+			wordArray.push(word)
+			var li = document.createElement("li")
+			li.innerHTML = '<label>' + word + '</label><span class="destroy">x</span>'
+			list.appendChild(li)
+		}
 	}
+	updateCount()
 	createCrossword(wordArray, wordArray)
 }
+
+function createCrossword(words, a_words, b_words){
+	if(words.length == 0) return
+
+	//
+	// Let's make two separate grids, one for each student
+	//
+	var result = createCrossword(words, a_words, b_words)
+	if(result.grid == null) {
+		message_div.innerHTML = result.message
+		grid_a_div.innerHTML = ""
+		clues_a_across.innerHTML = ""
+		clues_a_down.innerHTML = ""
+		grid_b_div.innerHTML = ""
+		clues_b_across.innerHTML = ""
+		clues_b_down.innerHTML = ""
+		return
+	}
+	message_div.innerHTML = ""
 	
+	//
+	// We'll give student A all the even words, and student B all the odd words
+	//
+	var a_words = [], b_words = []
+	var clues = CrosswordUtils.getClues(result.grid, words)
+	for(var i=0; i<clues.across.length; i++){
+		if(i % 2 == 0) a_words.push(clues.across[i].word)
+		else b_words.push(clues.across[i].word)
+	}
+	for(var i=0; i<clues.down.length; i++){
+		if(i % 2 == 0) a_words.push(clues.down[i].word)
+		else b_words.push(clues.down[i].word)
+	}
+	
+	//
+	// We'll hide the words that aren't for this student
+	//
+	var a_grid = JSON.parse(JSON.stringify(result.grid)); // deep copy
+	var b_grid = JSON.parse(JSON.stringify(result.grid)); // deep copy
+	
+	clues_a_across.innerHTML = ""
+	clues_a_down.innerHTML = ""
+	clues_b_across.innerHTML = ""
+	clues_b_down.innerHTML = ""
+
+	var a_label = 1, b_label = 1
+	
+	var all_clues = CrosswordUtils.getClues(result.grid, words)
+	
+	for(var i=0; i<all_clues.across.length; i++){
+		var word = all_clues.across[i].word
+		var n = all_clues.across[i].number
+		if(a_words.indexOf(word) > -1){
+			clues_a_across.innerHTML += "<li>" + n + ". " + word + "</li>"
+			clues_b_across.innerHTML += "<li>" + n + ". " + word.replace(/./g, '_') + "</li>"
+		} else {
+			clues_b_across.innerHTML += "<li>" + n + ". " + word + "</li>"
+			clues_a_across.innerHTML += "<li>" + n + ". " + word.replace(/./g, '_') + "</li>"
+		}
+	}
+
+	for(var i=0; i<all_clues.down.length; i++){
+		var word = all_clues.down[i].word
+		var n = all_clues.down[i].number
+		if(a_words.indexOf(word) > -1){
+			clues_a_down.innerHTML += "<li>" + n + ". " + word + "</li>"
+		clues_b_down.innerHTML += "<li>" + n + ". " + word.replace(/./g, '_') + "</li>"
+		} else {
+			clues_b_down.innerHTML += "<li>" + n + ". " + word + "</li>"
+			clues_a_down.innerHTML += "<li>" + n + ". " + word.replace(/./g, '_') + "</li>"
+		}
+	}
+	
+	//
+	// Show the grids
+	//
+	hideWords(a_grid, b_words)
+	grid_a_div.innerHTML = CrosswordUtils.toHtml(a_grid, true)
+
+	hideWords(b_grid, a_words)
+	grid_b_div.innerHTML = CrosswordUtils.toHtml(b_grid, true)
+}
+
+function hideWords(grid, words) {
+	for(var r=0; r<grid.length; r++){
+		for(var c=0; c<grid[0].length; c++){
+			var cell = grid[r][c]
+			if(!cell) continue
+
+			if(cell.across && words.indexOf(wordArray[cell.across.word_index].toUpperCase()) > -1) cell.char = ''
+			if(cell.down && words.indexOf(wordArray[cell.down.word_index].toUpperCase()) > -1) cell.char = ''
+		}
+	}
+}
+
 function updateCount(){
 	if (list.children.length > 1) count.innerHTML = list.children.length + ' words'
 	else if (list.children.length == 0) count.innerHTML = 'hit enter to add a word'
@@ -666,12 +528,4 @@ newWord.addEventListener("keypress", function(event) {
 		addWord(newWord.value)
 		newWord.value = ''
 	}
-})
-
-// move to the word-new input field after entering a topic for the crossword
-crossTopic.addEventListener('keypress', function(event) {
-    if (event.keyCode == 13 && crossTopic.value.trim() !== '') {
-        document.getElementById('cross-topic').value = titleCase(crossTopic.value);
-        document.getElementById('word-new').focus();
-    }
 })
