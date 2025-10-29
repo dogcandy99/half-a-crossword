@@ -1,667 +1,152 @@
 <!DOCTYPE html>
 <html>
-<title>Half a Crossword</title>
 <head>
-<meta charset="utf-8">
-<link href='https://fonts.googleapis.com/css?family=PT+Mono' rel='stylesheet' type='text/css'>
-<link href='https://fonts.googleapis.com/css?family=Merriweather:400,300' rel='stylesheet' type='text/css'>
-<style>
-page[size="A4"] {
-	background: white;
-	width: 21cm;
-	height: 29.7cm;
-	display: block;
-	margin: 0 auto;
-	margin-bottom: 0.5cm;
-}
-
-@page {
-	size: A4;
-	margin: 0;
-	padding: 20px;
-}
-.popup {
-	position: fixed;
-	padding: 10px;
-	max-width: 500px;
-	height: 500px;
-	border-radius: 2px;
-	top: 50%;
-	left: 50%;
-	transform: translate(-50%,-50%);
-	background: rgba(255,255,255,.9);
-	visibility: hidden;
-	opacity: 0;
-	-webkit-transition: opacity .5s, visibility 0s linear .5s;
-	transition: opacity .5s, visibility 0s linear .5s;
-	z-index: 2;
-}
-.popup:target {
-	visibility: visible;
-	opacity: 1;
-	-webkit-transition-delay: 0s;
-	transition-delay: 0s;
-}
-.popup-close {
-	position: absolute;
-	padding: 10px;
-	max-width: 500px;
-	border-radius: 2px;
-	top: 50%;
-	left: 50%;
-	transform: translate(-50%,-50%);
-	background: rgba(255,255,255,.9);
-}
-.popup .close {
-	position: absolute;
-	right: 5px;
-	top: 5px;
-	padding: 5px;
-	color: #000;
-	transition: color .3s;
-	font-size: 2em;
-	line-height: .6em;
-	font-weight: bold;
-}
-.popup .close:hover {
-	color: #00E5EE;
-}
-
-.close-popup {
-	background: rgba(0,0,0,.7);
-	cursor: default;
-	position: fixed;
-	top: 0;
-	left: 0;
-	right: 0;
-	bottom: 0;
-	opacity: 0;
-	visibility: hidden;
-	-webkit-transition: opacity .5s, visibility 0s linear .5s;
-	transition: opacity .5s, visibility 0s linear .5s;
-}
-.popup:target + .close-popup{  
-	opacity: 1;
-	visibility: visible;
-	-webkit-transition-delay: 0s;
-	transition-delay: 0s;
-}
-.instruct1 {
-	display: inline-block;
-	padding-top: 0px;
-	padding-bottom: 3px;
-}
-
-.instruct2 {
-	display: inline-block;
-	padding-top: 0px;
-	padding-bottom: 10px;
-}
-.h1-topic {
-	font-weight: normal;
-	text-align: left;
-	float: left;
-	font-size: 20px;
-	letter-spacing: 2px;
-	color: red; /*#153FC8;*/
-	padding-bottom: 20px;
-	padding-left: 5px;
-	display: inline;
-	margin: 0px;
-}
-
-.h1-cross {
-	font-weight: normal;
-	text-align: left;
-	float: left;
-	font-size: 20px;
-	letter-spacing: 2px;
-	color: #000000;
-	padding-bottom: 20px;
-	display: inline;
-	margin: 0px;
-}
-
-.h1-student,
-.h1-key {
-	font-weight: 600;
-	text-align: right;
-	float: right;
-	font-size: 20px;
-	letter-spacing: 2px;
-	color: #000000;
-	padding-bottom: 20px;
-	display: inline;
-	margin: 0px;
-}
-
-.h1-words {
-	font-weight: normal;
-	text-align: center;
-	font-size: 20px;
-	letter-spacing: normal;
-	color: #000000;
-	padding-top: 20px;
-	padding-bottom: 0px;
-}
-
-td.across1,
-td.down1 {
-	border-width: 1px;
-	border-style: solid;
-	border-right: none;
-}
-
-td.across2,
-td.down2 {
-	border-width: 1px;
-	border-style: solid;
-	border-left: none;
-}
-#cross-help {
-	text-align: center;
-	font-size: 18px;
-}
-
-#key-page {
-	display: none;
-}
-.student-puzzles,
-.key-puzzle {
-	border-collapse: collapse;
-	font-weight: bold;
-	margin-left: auto;
-	margin-right: auto;
-	clear: both;
-	margin-top: auto;
-	margin-bottom: auto;
-	border: 1px solid #ffffff;
-}
-
-#student-puzzles .word-char,
-#key-puzzle .word-char {
-	border: 1px solid black;
-	padding: 1px;
-	padding-top: 3px;
-	margin: 0px;
-	vertical-align: middle;
-	text-align: center;
-	width: 25px;
-	height: 25px;
-	font-weight: bold;
-	font-size: 22px;
-}
-
-.student-puzzles .no-border {
-	border: none;
-	padding: 1px;
-	padding-top: 3px;
-	margin: 0px;
-	vertical-align: middle;
-	text-align: center;
-	width: 25px;
-	height: 25px;
-	font-weight: bold;
-	font-size: 22px;
-}
-
-#key-words,
-#studentA-words,
-#studentB-words {
-	display: inline-block;
-	font-size: 18px;
-	padding-bottom: 20px;
-}
-
-#key-words td,
-#studentA-words td,
-#studentB-words td {
-	vertical-align: top;
-	width: 210px;
-	padding: 3px 5px 5px 5px;
-}
-
-#key-words th,
-#studentA-words th,
-#studentB-words th {
-	text-align: center;
-}
-
-#studentA-wrapper,
-#studentB-wrapper,
-#key-wrapper {
-	padding-top: 20px;
-}
-#header {
-	padding-top: 12px;
-	border-radius: inherit;
-}
-
-#header:before {
-	content: '';
-	position: absolute;
-	top: 0;
-	right: 0;
-	left: 0;
-	height: 15px;
-	z-index: 2;
-	border-bottom: 1px solid black;
-	background: #2a2a2a;
-	border-top-left-radius: 1px;
-	border-top-right-radius: 1px;
-}
-
-#words {
-	background: #fff;
-	background: rgba(255, 255, 255, 0.9);
-	margin: 50px 0 40px 0;
-	border: 1px solid black;
-	position: relative;
-	border-top-left-radius: 2px;
-	border-top-right-radius: 2px;
-}
-
-#words:after {
-	content: '';
-	border-left: 1px solid #cccccc;
-	border-right: 1px solid #cccccc;
-	width: 2px;
-	position: absolute;
-	top: 0;
-	right: 40px;
-	height: 100%;
-}
-
-#words input::-webkit-input-placeholder {
-	font-style: italic;
-}
-
-#words input::-moz-placeholder {
-	font-style: italic;
-	color: #a9a9a9;
-}
-
-#words h1 {
-	position: absolute;
-	top: -2em;
-	width: 100%;
-	font-size: 2em;
-	line-height: 1.3em;
-	font-weight: bold;
-	text-align: center;
-	color: black;
-}
-
-#words .edit {
-	position: relative;
-	margin: 0;
-	width: 100%;
-	font-size: 14px;
-	font-family: inherit;
-	font-weight: inherit;
-	line-height: 1.4em;
-	border: 0;
-	outline: none;
-	color: inherit;
-	top:-14px;
-}
-
-#word-new {
-	position: relative;
-	margin: 0;
-	width: 100%;
-	font-size: 14px;
-	font-family: inherit;
-	line-height: 1.4em;
-	outline: none;
-	color: inherit;
-	border: 1px solid #999;
-	padding: 16px 16px 10px 15px;
-	border: none;
-	background: rgba(0, 0, 0, 0.02);
-	z-index: 2;
-	box-shadow: none;
-}
-
-#word-list {
-	margin: 0;
-	padding: 0;
-	list-style: none;
-}
-
-#word-list li {
-	position: relative;
-	font-size: 14px;
-	border-bottom: 1px dotted #ccc;
-}
-
-#word-list li:last-child {
-	border-bottom: none;
-}
-
-#word-list li .toggle {
-	text-align: center;
-	width: 40px;
-	height: auto;
-	position: absolute;
-	top: 0;
-	bottom: 0;
-	margin: auto 0;
-	border: none;
-	-webkit-appearance: none;
-	-ms-appearance: none;
-	-o-appearance: none;
-	appearance: none;
-}
-
-#word-list li label {
-	word-break: break-word;
-	padding: 15px;
-	height: 10px;
-	display: block;
-	line-height: 0.6;
-	-webkit-transition: color 0.4s;
-	-moz-transition: color 0.4s;
-	-ms-transition: color 0.4s;
-	-o-transition: color 0.4s;
-	transition: color 0.4s;
-}
-
-#word-list li.completed label {
-	color: #a9a9a9;
-	text-decoration: line-through;
-}
-
-#word-list li .destroy {
-	display: none;
-	border: none;
-	background: none;
-	position: absolute;
-	top: 0;
-	right: 2px;
-	bottom: 0;
-	width: 40px;
-	height: 40px;
-	margin: auto 0;
-	font-size: 22px;
-	transition: all 0.2s;
-}
-
-#word-list li .destroy:hover {
-	transform: scale(1.3);
-}
-
-#word-list li .destroy:after {
-	content: '✖';
-}
-
-#word-list li:hover .destroy {
-	display: block;
-}
-
-#word-list li .destroy:active  {
-	outline: none !important;
-	color: red;
-}
-
-#footer {
-	color: #777;
-	padding: 0 15px;
-	position: absolute;
-	right: 0;
-	bottom: -31px;
-	left: 0;
-	height: 20px;
-	z-index: 1;
-	text-align: center;
-}
-
-.demo {
-	padding: 5px;
-	cursor: pointer;
-	border: 2px solid black;
-	background-color: white;
-	color: black;
-	font-family: 'Merriweather', sans-serif;
-	font-size: 18px;
-	font-weight: bold;
-}
-.demo:hover{
-	background-color: black;
-	color: white;
-}
-
-#crossword {
-    text-align:center;
-	font-family: 'Merriweather', serif;
-	font-size: 15px;
-}
-
-.crossword {
-    border-collapse:collapse;
-    font-family: 'PT Mono', "Courier New", Courier, monospace;
-	font-weight: bold;
-    margin-left:auto;
-    margin-right:auto;
-    clear:both;
-    margin-top:10px;
-    margin-bottom:10px;
-	border:3px solid #e8e8e8;
-}
-
-.crossword td {
-    border:3px solid black;
-    padding:0;
-    margin:0;
-    vertical-align:middle;
-    padding:0;
-    text-align:center;
-    width:25px;
-    height:25px;
-}
-.crossword .no-border {
-    border:none;
-	background: #e8e8e8;
-}
-
-.titles {
-	text-align: center;
-	padding: 15px;
-}
-
-#clues {
-	font-family: 'Merriweather', serif;
-    margin:auto;
-}
-h1, h3 {
-	font-family: 'Merriweather', serif;
-    margin:auto;
-	line-height: 20px;
-}
-
-.settingsButton {
-	float: right;
-}
-
-.settingsButton:hover {
-	transform: scale(1.3);
-}
-
-#scissors {
-    height: 43px;
-    width: 100%;
-    margin: auto auto;
-    background-image: url('numbers/scissors.png');
-    background-repeat: no-repeat;
-    background-position: right;
-    position: relative;
-}
-#scissors div {
-    position: relative;
-    top: 50%;
-    border-top: 1px dashed black !important;
-    margin-top: -3px;
-}
-
-#clues {
-    border-spacing: 150px 0px;
-}
-#clues td {
-    vertical-align:top;
-}
-* {
-  margin: 0;
-  padding: 0;
-}
-
-html, body {
-  font-family: Arial, Helvetica, sans-serif;
-  font-weight: normal;
-  font-size: 12px;
-  color: #000000;
-  line-height: 1.5em;
-  background-color: #eeeeee;
-}
-
-.wrapper {
-  width: 100%;
-  text-align: center;
-}
-
-.container {
-  text-align: left;
-  -moz-box-sizing: border-box;
-  -webkit-box-sizing: border-box;
-  box-sizing: border-box;
-  margin: 0 auto;
-  padding: 20px;
-}
-
-.header-main {
-  display: block;
-  width: 100%;
-  height: 80px;
-  line-height: 40px;
-  text-align: center;
-  border: 1px solid #dddddd;
-  background-color: #ffffff;
-  -moz-box-sizing: border-box;
-  -webkit-box-sizing: border-box;
-  box-sizing: border-box;
-  margin: 0 0 20px 0;
-  padding: 20px;
-}
-
-.main {
-  word-wrap: break-word;
-  border: 1px solid #dddddd;
-  background-color: #ffffff;
-  -moz-box-sizing: border-box;
-  -webkit-box-sizing: border-box;
-  box-sizing: border-box;
-  padding: 20px;
-}
-
-.column-two {
-  float: none;
-  width: auto;
-  overflow: hidden;
-}
-
-.column-one {
-  float: left;
-  position: relative;
-  width: 300px;
-  word-wrap: break-word;
-  border: 1px solid #dddddd;
-  background-color: #ffffff;
-  -moz-box-sizing: border-box;
-  -webkit-box-sizing: border-box;
-  box-sizing: border-box;
-  margin-right: 20px;
-  padding: 20px;
-}
-
-.main-menu ul {
-  list-style: none;
-}
-
-@media only screen and (max-width: 767px) {
-  .container {
-    width: 100%;
-    max-width: 767px;
-  }
+  <title>Partner Crossword</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  .column-one {
-    float: none;
-    position: static;
-    width: 100%;
-    margin-right: 0;
-    margin-bottom: 20px;
-  }
-}
-@media print
-{    
-    .no-print, .no-print * {display: none !important;}
-	html, body {background-color: white !important;}
-	table {page-break-inside: avoid !important;}
-	#column-two {border: 1px solid white;}
-}
-	<style>
-  @media print {
-    /* This one rule forces the browser to print background images */
-    table.crossword td {
-      -webkit-print-color-adjust: exact;
-      print-color-adjust: exact;
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      display: flex;
+      margin: 0;
     }
-  }
-</style>
-</head><body>
-<div id="wrapper" class="wrapper">
-  <div id="container" class="container">
-    <header id="header-main" class="header-main no-print" role="banner">
-      <h1>Half a Crossword</h1>
-	  <h3>for ESL conversation classes</h3>
-    </header>
-    <div id="column-one" class="column-one no-print">
-      <nav id="main-menu" class="main-menu" role="navigation">
-       <div id="words">
-			<header id="header">
-				<h1 class="left">wordlist<span class="settingsButton"><a href="#settings" class="btn"><img src="numbers/settings.svg"></a></span></h1>
-				<input id="word-new" placeholder="enter new words here" autofocus>
-			</header>
-			<div id="mainwords">
-				<ul id="word-list"></ul>
-			</div>
-			<footer id="footer">
-				<span id="word-count">hit enter to add word</span>
-			</footer>
-		</div>
-      </nav>
+    #left-panel {
+      width: 250px;
+      padding: 10px;
+      border-right: 1px solid #ddd;
+      height: 100vh;
+      overflow-y: auto;
+    }
+    #right-panel {
+      flex-grow: 1;
+      padding: 10px;
+      height: 100vh;
+      overflow-y: auto;
+    }
+    textarea {
+      width: 100%;
+      box-sizing: border-box;
+      margin-top: 5px;
+    }
+    #list {
+      list-style-type: none;
+      padding-left: 0;
+      margin: 10px 0;
+      border: 1px solid #ccc;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+    #list li {
+      padding: 5px;
+      border-bottom: 1px solid #eee;
+    }
+    .destroy {
+      float: right;
+      color: red;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    #demo, #print-btn {
+      cursor: pointer;
+      text-decoration: underline;
+      color: #007bff;
+      background: none;
+      border: none;
+      font-size: 1em;
+      padding: 0;
+      margin: 10px 0;
+    }
+    
+    /* --- This is the critical CSS for the crossword grid --- */
+    table.crossword {
+      border-collapse: collapse;
+      margin-bottom: 20px;
+    }
+    table.crossword td {
+      border: 1px solid #000;
+      width: 25px;
+      height: 25px;
+      text-align: center;
+      vertical-align: middle;
+      font-size: 1.2em;
+      
+      /* This is the first part of the fix */
+      position: relative; 
+    }
+    table.crossword td.no-border {
+      border: none;
+    }
+    
+    /* This is the second part of the fix: it styles the numbers */
+    .num {
+      position: absolute;
+      font-size: 0.5em; /* Makes the number small */
+      top: 1px;
+      left: 2px;
+      color: #333; /* Makes it a light grey */
+    }
+    /* --- End of critical CSS --- */
+
+    @media print {
+      #left-panel, #print-btn {
+        display: none;
+      }
+      #right-panel {
+        width: 100%;
+        height: auto;
+        overflow: visible;
+      }
+      #puzzle-b {
+        page-break-before: always;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div id="left-panel">
+    <h2>Crossword Generator</h2>
+    <p>Type one word at a time and press Enter. For a demo, click <span id="demo">here</span>.</p>
+    
+    <textarea id="newWord" placeholder="Type a word..." rows="2"></textarea>
+    <div id="count">hit enter to add a word</div>
+    <ul id="list"></ul>
+    
+    <button id="print-btn">Print Puzzles</button>
+  </div>
+  
+  <div id="right-panel">
+    <div id="message"></div>
+    
+    <div id="puzzle-a">
+      <h2>Partner A</h2>
+      <div id="grid-a"></div>
+      <h3>Across</h3>
+      <ol id="clues-a-across"></ol>
+      <h3>Down</h3>
+      <ol id="clues-a-down"></ol>
     </div>
-    <div id="column-two" class="main column-two">
-		<div id="student-puzzles">
-			<div id="instruction" class="no-print">To create a half a crossword puzzle, type (or paste) some words in the wordlist panel on the left.</br>Click the gear <img width="15px" src="numbers/settings.svg"> on the left to customize the font, title and size of your puzzle.</br></br>Or for a quick demo click here: <button class="demo" id="demo">demo</button></div>
-		</div>
-		<div id="key-page">
-			<div id="key-wrapper">
-				<div id="key-header"></div>
-				<div id="key-puzzle"></div>
-			</div>
-		</div>
+    
+    <hr style="margin: 20px 0;">
+    
+    <div id="puzzle-b">
+      <h2>Partner B</h2>
+      <div id="grid-b"></div>
+      <h3>Across</h3>
+      <ol id="clues-b-across"></ol>
+      <h3>Down</h3>
+      <ol id="clues-b-down"></ol>
     </div>
   </div>
-  <div id="settings" class="popup">
-  <a href="#" class="close">&times;</a>
-  <h1>Settings</h1>
-  </br></br>
-  <input id="cross-topic" placeholder="Enter a title here." autofocus>
-  <p>This popup can be closed by clicking the fancy <b>×</b> in the top right corner or by clicking outside the popup box!</p>
-</div>
-<a href="#" class="close-popup"></a>
-</div>
+
+  <script>
+    document.getElementById('print-btn').addEventListener('click', function() {
+      window.print();
+    });
+  </script>
+  
+  <script src="crossword.js"></script>
+
 </body>
-<script type="text/javascript" src="crossword.js"></script>
-
 </html>
-
